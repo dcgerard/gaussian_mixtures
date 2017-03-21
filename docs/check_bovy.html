@@ -311,7 +311,7 @@ div.tocify {
 
 <div id="abstract" class="section level2">
 <h2>Abstract</h2>
-<p>I want to know if Bovy’s EM algorithm will only create matrices that span the same space as the initial conditions. Turns out this is correct. We just get a scaled estimate of the initial vector.</p>
+<p>I want to know if Bovy’s EM algorithm will only result in estimate that span the same space as the initial conditions. Turns out this is correct. We just get a scaled estimate of the initial vector in the rank 1 case.</p>
 </div>
 <div id="analysis" class="section level1">
 <h1>Analysis</h1>
@@ -340,7 +340,7 @@ xcovar[[1]] &lt;- tcrossprod(v1) ## the rank 1 psd matrix
 
 xcovar[[2]] &lt;- diag(p) ## full rank identity
 
-V3 &lt;- matrix(rnorm(p * p), nrow = p) ## full rank pd matrix
+V3 &lt;- matrix(rnorm(p * 5), ncol = 5) ## rank 5 matrix
 xcovar[[3]] &lt;- tcrossprod(V3)</code></pre>
 <p>Now run extreme deconvolution.</p>
 <pre class="r"><code>library(ExtremeDeconvolution)
@@ -364,6 +364,31 @@ v1hat / v1</code></pre>
 ##  [8,] -0.3626
 ##  [9,] -0.3626
 ## [10,] -0.3626</code></pre>
+<p>Yes, it is. v1hat is just a scalar multiple of v1.</p>
+<p>What about the rank 5 matrix. If they are in the same span, then the last five columns should all be zero (since rank 5 and this is they form a basis for the nullspace).</p>
+<pre class="r"><code>qrout &lt;- qr(eout$xcovar[[3]])
+Q &lt;- qr.Q(qrout, complete = TRUE)
+
+t(V3) %*% Q</code></pre>
+<pre><code>##         [,1]    [,2]      [,3]    [,4]    [,5]       [,6]       [,7]
+## [1,]  1.2536 -1.2210  0.079579 -1.8635  0.2141  1.742e-10 -2.863e-09
+## [2,] -2.2908  1.4124 -0.004653 -2.4670 -1.0563  7.760e-11 -2.812e-09
+## [3,]  1.7969  1.1434 -0.703815  0.6740 -0.8199 -1.045e-10  1.312e-09
+## [4,]  0.5379 -1.3291  2.562501  2.9083 -1.2391 -5.007e-10  6.500e-09
+## [5,] -0.1769 -0.5701  0.603087  0.1762  3.5715  3.421e-10 -2.373e-09
+##            [,8]       [,9]      [,10]
+## [1,] -9.364e-10 -5.354e-10  5.354e-10
+## [2,] -4.987e-10 -4.150e-10  5.858e-10
+## [3,]  5.355e-10  2.695e-10 -2.273e-10
+## [4,]  2.628e-09  1.392e-09 -1.174e-09
+## [5,] -1.659e-09 -6.794e-10  3.273e-10</code></pre>
+<pre class="r"><code>abs(t(V3) %*% Q) &lt; 10 ^ -8</code></pre>
+<pre><code>##       [,1]  [,2]  [,3]  [,4]  [,5] [,6] [,7] [,8] [,9] [,10]
+## [1,] FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE TRUE  TRUE
+## [2,] FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE TRUE  TRUE
+## [3,] FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE TRUE  TRUE
+## [4,] FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE TRUE  TRUE
+## [5,] FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE TRUE  TRUE</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)
