@@ -7,3 +7,4 @@ output:
 
 This project is about coming up with a better way to estimate low-rank matrices in the multivariate Gaussian deconvolution problem.
 
+* [See if bovy always returns rank-1 matrix in same span as initial conditions](check_bovy.html)
