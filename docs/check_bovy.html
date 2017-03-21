@@ -311,22 +311,20 @@ div.tocify {
 
 <div id="abstract" class="section level2">
 <h2>Abstract</h2>
-<p>I want to know if Bovy’s EM algorithm will only create matrices that span the same space as the initial conditions.</p>
+<p>I want to know if Bovy’s EM algorithm will only create matrices that span the same space as the initial conditions. Turns out this is correct. We just get a scaled estimate of the initial vector.</p>
 </div>
 <div id="analysis" class="section level1">
 <h1>Analysis</h1>
 <p>First, I generate some fake data</p>
 <pre class="r"><code>set.seed(25)
-library(abind)
 n &lt;- 100
-p &lt;- 100
+p &lt;- 10
 ydata &lt;- matrix(rnorm(n * p), nrow = n)
-ycovar &lt;- array(NA, dim = c(n, p, p))
+ycovar &lt;- list()
 ycov_list &lt;- lapply(rep(p, n), FUN = stats::rchisq, df = 1)
 for (index in 1:n) {
-  ycovar[index, , ] &lt;- diag(ycov_list[[index]])
+  ycovar[[index]] &lt;- diag(ycov_list[[index]])
 }
-
 
 K &lt;- 3 ## number of mixtures
 xamp &lt;- runif(K) ## initial mixture proportions
@@ -335,21 +333,37 @@ xamp &lt;- xamp / sum(xamp)
 ## Here, I assume that observed and true data have same dimension
 xmean &lt;- matrix(0, nrow = K, ncol = p) ## initial mixture means
 
-xcovar &lt;- array(NA, dim = c(K, p, p)) ## initial covariance matrices
+xcovar &lt;- list() ## initial covariance matrices
 
 v1 &lt;- matrix(rnorm(p), ncol = 1)
-xcovar[1,,] &lt;- tcrossprod(v1) ## the rank 1 psd matrix
+xcovar[[1]] &lt;- tcrossprod(v1) ## the rank 1 psd matrix
 
-xcovar[2,,] &lt;- diag(p) ## full rank identity
+xcovar[[2]] &lt;- diag(p) ## full rank identity
 
 V3 &lt;- matrix(rnorm(p * p), nrow = p) ## full rank pd matrix
-xcovar[3,,] &lt;- tcrossprod(V3)</code></pre>
+xcovar[[3]] &lt;- tcrossprod(V3)</code></pre>
+<p>Now run extreme deconvolution.</p>
 <pre class="r"><code>library(ExtremeDeconvolution)
 
 eout &lt;- extreme_deconvolution(ydata = ydata, ycovar = ycovar,
                               xamp = xamp, xmean = xmean, xcovar = xcovar,
                               fixmean = TRUE)</code></pre>
-<pre><code>## Error in matrix(res$xcovar[start:end], dim(xcovar[[i]]), byrow = TRUE): non-numeric matrix extent</code></pre>
+<p>Check to see if estimate is in same span as initial value.</p>
+<pre class="r"><code>eigen_out &lt;- eigen(eout$xcovar[[1]])
+v1hat &lt;- eigen_out$vectors[, 1]
+
+v1hat / v1</code></pre>
+<pre><code>##          [,1]
+##  [1,] -0.3626
+##  [2,] -0.3626
+##  [3,] -0.3626
+##  [4,] -0.3626
+##  [5,] -0.3626
+##  [6,] -0.3626
+##  [7,] -0.3626
+##  [8,] -0.3626
+##  [9,] -0.3626
+## [10,] -0.3626</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)
@@ -367,7 +381,7 @@ eout &lt;- extreme_deconvolution(ydata = ydata, ycovar = ycovar,
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] ExtremeDeconvolution_1.3 abind_1.4-5             
+## [1] ExtremeDeconvolution_1.3
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] backports_1.0.5 magrittr_1.5    rprojroot_1.2   tools_3.3.2    

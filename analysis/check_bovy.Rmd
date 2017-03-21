@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Abstract
 
-I want to know if Bovy's EM algorithm will only create matrices that span the same space as the initial conditions.
+I want to know if Bovy's EM algorithm will only create matrices that span the same space as the initial conditions. Turns out this is correct. We just get a scaled estimate of the initial vector.
 
 # Analysis
 
@@ -19,16 +19,14 @@ First, I generate some fake data
 
 ```{r}
 set.seed(25)
-library(abind)
 n <- 100
-p <- 100
+p <- 10
 ydata <- matrix(rnorm(n * p), nrow = n)
-ycovar <- array(NA, dim = c(n, p, p))
+ycovar <- list()
 ycov_list <- lapply(rep(p, n), FUN = stats::rchisq, df = 1)
 for (index in 1:n) {
-  ycovar[index, , ] <- diag(ycov_list[[index]])
+  ycovar[[index]] <- diag(ycov_list[[index]])
 }
-
 
 K <- 3 ## number of mixtures
 xamp <- runif(K) ## initial mixture proportions
@@ -37,16 +35,18 @@ xamp <- xamp / sum(xamp)
 ## Here, I assume that observed and true data have same dimension
 xmean <- matrix(0, nrow = K, ncol = p) ## initial mixture means
 
-xcovar <- array(NA, dim = c(K, p, p)) ## initial covariance matrices
+xcovar <- list() ## initial covariance matrices
 
 v1 <- matrix(rnorm(p), ncol = 1)
-xcovar[1,,] <- tcrossprod(v1) ## the rank 1 psd matrix
+xcovar[[1]] <- tcrossprod(v1) ## the rank 1 psd matrix
 
-xcovar[2,,] <- diag(p) ## full rank identity
+xcovar[[2]] <- diag(p) ## full rank identity
 
 V3 <- matrix(rnorm(p * p), nrow = p) ## full rank pd matrix
-xcovar[3,,] <- tcrossprod(V3)
+xcovar[[3]] <- tcrossprod(V3)
 ```
+
+Now run extreme deconvolution. 
 
 ```{r, error=TRUE}
 library(ExtremeDeconvolution)
@@ -55,6 +55,15 @@ eout <- extreme_deconvolution(ydata = ydata, ycovar = ycovar,
                               xamp = xamp, xmean = xmean, xcovar = xcovar,
                               fixmean = TRUE)
 
+```
+
+Check to see if estimate is in same span as initial value.
+
+```{r}
+eigen_out <- eigen(eout$xcovar[[1]])
+v1hat <- eigen_out$vectors[, 1]
+
+v1hat / v1
 ```
 
 
