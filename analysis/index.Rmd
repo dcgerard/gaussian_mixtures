@@ -8,5 +8,5 @@ output:
 This project is about coming up with a better way to estimate low-rank matrices in the multivariate Gaussian deconvolution problem.
 
 * [Bovy always returns rank-1 matrix in same span as initial conditions](check_bovy.html). That is, we just get a scaled estimate of the intial vector.
-* [My UltimateDeconvolution does not result in estimates in the same span as the original](check_ultimate.html). I also show that the likelihood increases at every fixed-point iteration.
+* [My UltimateDeconvolution does not result in estimates in the same span as the original](check__ultimate.html). I also show that the likelihood increases at every fixed-point iteration.
 * [I need to work on my speed](profile_densities.html). Even the density calculation is super slow even though I have more information (low rank + diagonal)! I will probably write everything up in C.
