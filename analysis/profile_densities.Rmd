@@ -1,0 +1,55 @@
+---
+title: "Compare Multivariate Normal Density Speeds"
+author: "David Gerard"
+date: "March 22, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I compare the speeds to my `dr1_norm` from the [UltimateDeconvolution](https://github.com/dcgerard/UltimateDeconvolution) package and `dmvnorm` from the `mvtnorm` R package. Since I am using more information (rank 1 + diagonal), mine should be faster. But the effects of writing it in C are so great that mine is actually much slower. The log-likelihoods agree, though.
+
+
+```{r}
+library(microbenchmark)
+library(UltimateDeconvolution)
+set.seed(17)
+R <- 11
+x <- stats::rnorm(R)
+s_diag <- stats::rchisq(R, df = 5)
+v <- stats::rnorm(R)
+mu <- rep(0, length(x))
+log <- TRUE
+true_cov <- tcrossprod(v) + diag(s_diag)
+
+melist <- list(x = x, v = v, s_diag = s_diag,
+               mu = mu, log = log)
+
+themlist <- list(x = x, mean = mu,
+                 sigma = true_cov, log = log)
+
+microbenchmark(
+  do.call(dr1_norm, melist),
+  do.call(mvtnorm::dmvnorm, themlist)
+)
+```
+
+The log-likelihoods are also the same.
+
+```{r}
+medense <- dr1_norm(x = x, v = v, s_diag = s_diag,
+                    mu = mu, log = log)
+themdense <- mvtnorm::dmvnorm(x = x, mean = mu,
+                              sigma = true_cov, log = log)
+
+medense
+themdense
+```
+
+```{r}
+sessionInfo()
+````

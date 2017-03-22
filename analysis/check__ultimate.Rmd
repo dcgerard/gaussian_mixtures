@@ -1,0 +1,70 @@
+---
+title: "Check if UltimateDeconvolution's Matrices Also Span Same Space"
+author: "David Gerard"
+date: "March 22, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Abstract
+
+Recall from [here](check_bovy.html) that Extreme Deconvolution only returns estimates in the same spann as the initial values. I want to check if my new [UltimateDeconvolution](https://github.com/dcgerard/UltimateDeconvolution) also has this property. It turns out that it does not --- which is good! I also show that the likelihood increases at every fixed point iteration.
+
+# Generate Data and Run Ultimate Deconvolution
+
+First, I generate some fake data
+
+```{r}
+set.seed(25)
+n <- 100
+p <- 10
+x_mat <- matrix(rnorm(n * p), nrow = n)
+s_mat <- matrix(stats::rchisq(n * p, df = 1), nrow = n)
+
+K <- 3 ## number of mixtures
+pi_vec<- runif(K) ## initial mixture proportions
+pi_vec <- pi_vec / sum(pi_vec)
+v_mat <- matrix(rnorm(p*K), ncol = K)
+
+```
+
+Now run ultimate deconvolution. 
+
+```{r, cache=TRUE}
+library(UltimateDeconvolution)
+
+udout <- ultimate_deconvolution(x_mat = x_mat,
+                                s_mat = s_mat,
+                                v_mat = v_mat,
+                                pi_vec = pi_vec)
+
+```
+
+# Check that Likelihood Increases Every Iteration
+
+First, just check that the likelihood increases every iteration. I know it does because I used an assertion for this, but it will be good to plot this so that I remember.
+
+```{r}
+suppressMessages(library(tidyverse))
+dat <- data_frame(Iteration = 1:length(udout$llike_vec),
+                  Loglikelihood = udout$llike_vec)
+ggplot(data = dat, mapping = aes(x = Iteration, y = Loglikelihood)) +
+  geom_line() +
+  theme_bw()
+```
+
+# Not in Same Spann as Initial Value.
+
+Check to see if estimate is in same span as initial value. It is not (if it were then each column would contain repetitions of the same numers).
+
+```{r}
+v_mat / udout$v_mat
+```
+
+
+```{r}
+sessionInfo()
+```

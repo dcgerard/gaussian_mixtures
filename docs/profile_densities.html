@@ -9,9 +9,11 @@
 <meta name="generator" content="pandoc" />
 
 
+<meta name="author" content="David Gerard" />
 
+<meta name="date" content="2017-03-22" />
 
-<title>Home</title>
+<title>Compare Multivariate Normal Density Speeds</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,6 +21,9 @@
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-1.1/highlight.js"></script>
@@ -162,6 +167,101 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
 
 
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
@@ -202,17 +302,81 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Home</h1>
+<h1 class="title toc-ignore">Compare Multivariate Normal Density Speeds</h1>
+<h4 class="author"><em>David Gerard</em></h4>
+<h4 class="date"><em>March 22, 2017</em></h4>
 
 </div>
 
 
-<p>This project is about coming up with a better way to estimate low-rank matrices in the multivariate Gaussian deconvolution problem.</p>
-<ul>
-<li><a href="check_bovy.html">Bovy always returns rank-1 matrix in same span as initial conditions</a>. That is, we just get a scaled estimate of the intial vector.</li>
-<li><a href="check_ultimate.html">My UltimateDeconvolution does not result in estimates in the same span as the original</a>. I also show that the likelihood increases at every fixed-point iteration.</li>
-<li><a href="profile_densities.html">I need to work on my speed</a>. Even the density calculation is super slow even though I have more information (low rank + diagonal)! I will probably write everything up in C.</li>
-</ul>
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>Here, I compare the speeds to my <code>dr1_norm</code> from the <a href="https://github.com/dcgerard/UltimateDeconvolution">UltimateDeconvolution</a> package and <code>dmvnorm</code> from the <code>mvtnorm</code> R package. Since I am using more information (rank 1 + diagonal), mine should be faster. But the effects of writing it in C are so great that mine is actually much slower. The log-likelihoods agree, though.</p>
+<pre class="r"><code>library(microbenchmark)</code></pre>
+<pre><code>## Warning: package &#39;microbenchmark&#39; was built under R version 3.3.3</code></pre>
+<pre class="r"><code>library(UltimateDeconvolution)
+set.seed(17)
+R &lt;- 11
+x &lt;- stats::rnorm(R)
+s_diag &lt;- stats::rchisq(R, df = 5)
+v &lt;- stats::rnorm(R)
+mu &lt;- rep(0, length(x))
+log &lt;- TRUE
+true_cov &lt;- tcrossprod(v) + diag(s_diag)
+
+melist &lt;- list(x = x, v = v, s_diag = s_diag,
+               mu = mu, log = log)
+
+themlist &lt;- list(x = x, mean = mu,
+                 sigma = true_cov, log = log)
+
+microbenchmark(
+  do.call(dr1_norm, melist),
+  do.call(mvtnorm::dmvnorm, themlist)
+)</code></pre>
+<pre><code>## Unit: microseconds
+##                                 expr    min     lq   mean median     uq
+##            do.call(dr1_norm, melist) 1050.8 1167.7 1723.8 1386.8 2020.0
+##  do.call(mvtnorm::dmvnorm, themlist)  324.8  380.1  828.6  467.2  698.2
+##    max neval
+##   9186   100
+##  22017   100</code></pre>
+<p>The log-likelihoods are also the same.</p>
+<pre class="r"><code>medense &lt;- dr1_norm(x = x, v = v, s_diag = s_diag,
+                    mu = mu, log = log)
+themdense &lt;- mvtnorm::dmvnorm(x = x, mean = mu,
+                              sigma = true_cov, log = log)
+
+medense</code></pre>
+<pre><code>## [1] -20.52</code></pre>
+<pre class="r"><code>themdense</code></pre>
+<pre><code>## [1] -20.52</code></pre>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 3.3.2 (2016-10-31)
+## Platform: x86_64-w64-mingw32/x64 (64-bit)
+## Running under: Windows 10 x64 (build 14393)
+## 
+## locale:
+## [1] LC_COLLATE=English_United States.1252 
+## [2] LC_CTYPE=English_United States.1252   
+## [3] LC_MONETARY=English_United States.1252
+## [4] LC_NUMERIC=C                          
+## [5] LC_TIME=English_United States.1252    
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] UltimateDeconvolution_0.1.0 microbenchmark_1.4-2.1     
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.9      mvtnorm_1.0-6    assertthat_0.1   digest_0.6.12   
+##  [5] rprojroot_1.2    plyr_1.8.4       grid_3.3.2       gtable_0.2.0    
+##  [9] backports_1.0.5  magrittr_1.5     evaluate_0.10    scales_0.4.1    
+## [13] ggplot2_2.2.1    stringi_1.1.2    lazyeval_0.2.0   rmarkdown_1.3   
+## [17] tools_3.3.2      stringr_1.2.0    munsell_0.4.3    yaml_2.1.14     
+## [21] colorspace_1.3-2 htmltools_0.3.5  knitr_1.15.1     tibble_1.2</code></pre>
+</div>
 
 <hr>
 <p>
@@ -240,6 +404,8 @@ $(document).ready(function () {
 -->
 
 
+</div>
+</div>
 
 </div>
 
