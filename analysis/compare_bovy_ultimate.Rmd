@@ -1,5 +1,5 @@
 ---
-title: "Check if UltimateDeconvolution's Matrices Also Span Same Space"
+title: "Check likelihoods"
 author: "David Gerard"
 date: "`r Sys.Date()`"
 output: html_document
@@ -46,7 +46,7 @@ for (index in 1:K) {
 
 Now run `ultimate_deconvolution`.
 
-```{r, cache=TRUE}
+```{r}
 library(UltimateDeconvolution)
 
 udout <- ultimate_deconvolution(x_mat = x_mat,
