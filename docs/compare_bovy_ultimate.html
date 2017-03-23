@@ -13,7 +13,7 @@
 
 <meta name="date" content="2017-03-23" />
 
-<title>Check likelihoods</title>
+<title>Check Likelihoods</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -302,7 +302,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Check likelihoods</h1>
+<h1 class="title toc-ignore">Check Likelihoods</h1>
 <h4 class="author"><em>David Gerard</em></h4>
 <h4 class="date"><em>2017-03-23</em></h4>
 
@@ -350,8 +350,10 @@ edout &lt;- extreme_deconvolution(ydata = x_mat,
                                xamp = pi_vec,
                                xmean = matrix(0, nrow = K, ncol = p),
                                xcovar = U_list,
+                               fixmean = TRUE,
                                fixcovar = FALSE,
-                               fixamp = FALSE)</code></pre>
+                               fixamp = FALSE,
+                               logfile = &quot;bovy_out&quot;)</code></pre>
 <p>Get out estimates from both fits.</p>
 <pre class="r"><code>ed_pivec &lt;- edout$xamp
 ed_vmat &lt;- matrix(NA, nrow = p, ncol = K)
@@ -366,20 +368,20 @@ ud_pivec &lt;- udout$pi_vec
 ud_vmat  &lt;- udout$v_mat</code></pre>
 <p>Again, ExtremeDeconvolution just returns a scalar multiple of the start values</p>
 <pre class="r"><code>ed_vmat / v_mat</code></pre>
-<pre><code>##        [,1]    [,2]      [,3]
-##  [1,] -0.56 -0.1245 -0.002751
-##  [2,] -0.56 -0.1245 -0.002751
-##  [3,] -0.56 -0.1245 -0.002751
-##  [4,] -0.56 -0.1245 -0.002751
-##  [5,] -0.56 -0.1245 -0.002751
-##  [6,] -0.56 -0.1245 -0.002751
-##  [7,] -0.56 -0.1245 -0.002751
-##  [8,] -0.56 -0.1245 -0.002751
-##  [9,] -0.56 -0.1245 -0.002751
-## [10,] -0.56 -0.1245 -0.002751
-## [11,] -0.56 -0.1245 -0.002751
-## [12,] -0.56 -0.1245 -0.002751
-## [13,] -0.56 -0.1245 -0.002751</code></pre>
+<pre><code>##          [,1]    [,2]  [,3]
+##  [1,] -0.5945 -0.7966 -2.26
+##  [2,] -0.5945 -0.7966 -2.26
+##  [3,] -0.5945 -0.7966 -2.26
+##  [4,] -0.5945 -0.7966 -2.26
+##  [5,] -0.5945 -0.7966 -2.26
+##  [6,] -0.5945 -0.7966 -2.26
+##  [7,] -0.5945 -0.7966 -2.26
+##  [8,] -0.5945 -0.7966 -2.26
+##  [9,] -0.5945 -0.7966 -2.26
+## [10,] -0.5945 -0.7966 -2.26
+## [11,] -0.5945 -0.7966 -2.26
+## [12,] -0.5945 -0.7966 -2.26
+## [13,] -0.5945 -0.7966 -2.26</code></pre>
 <p>While UltimateDeconvolution does not</p>
 <pre class="r"><code>ud_vmat / v_mat</code></pre>
 <pre><code>##          [,1]    [,2]    [,3]
@@ -418,10 +420,10 @@ ud_llike &lt;- UltimateDeconvolution:::dmixlike(x_mat = x_mat,
 initial_llike</code></pre>
 <pre><code>## [1] -450.4</code></pre>
 <pre class="r"><code>ed_llike</code></pre>
-<pre><code>## [1] -572.3</code></pre>
+<pre><code>## [1] -446.1</code></pre>
 <pre class="r"><code>ud_llike</code></pre>
 <pre><code>## [1] -185.1</code></pre>
-<p>The likelihood from UltimateDeconvolution is 1.467710^{168} times greater than the likelihood from ExtremeDeconvolution.</p>
+<p>The likelihood from UltimateDeconvolution is 2.46410^{113} times greater than the likelihood from ExtremeDeconvolution.</p>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.3.2 (2016-10-31)
 ## Platform: x86_64-pc-linux-gnu (64-bit)

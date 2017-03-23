@@ -1,0 +1,61 @@
+---
+title: "Simulate Under Assumed Model"
+author: "David Gerard"
+date: "March 23, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I simulate under the assumed model and see how well Bovy and I do in estimating the covariances.
+
+# Simulate
+
+```{r}
+library(UltimateDeconvolution)
+library(ExtremeDeconvolution)
+
+set.seed(3456)
+R <- 2
+N <- 100
+s_mat <- matrix(1 , nrow = N, ncol = R)
+pi_vec <- runif(3)
+pi_vec <- pi_vec / sum(pi_vec)
+K <- length(pi_vec)
+v_mat <- matrix(stats::rnorm(R * K), nrow = R)
+
+x_mat <- rmixmultnorm(s_mat = s_mat, v_mat = v_mat, pi_vec = pi_vec)
+
+mix_cov_list <- list()
+obs_cov_list <- list()
+for (index in 1:K) {
+  mix_cov_list[[index]] <- tcrossprod(v_mat[, index])
+  obs_cov_list[[index]] <- diag(s_mat[index, ])
+}
+```
+
+# Fit Ultimate and Extreme at true parameter values
+
+```{r, cache = TRUE}
+ultimate_out <- ultimate_deconvolution(x_mat = x_mat, s_mat = s_mat,
+                                       v_mat = v_mat, pi_vec = pi_vec)
+
+extreme_out <- extreme_deconvolution(ydata = x_mat,
+                                     ycovar = obs_cov_list,
+                                     xamp = pi_vec,
+                                     xmean = matrix(0, nrow = K, ncol = R),
+                                     xcovar = mix_cov_list)
+```
+
+```{r}
+plot(ultimate_out$v_mat, v_mat)
+
+```
+
+```{r}
+sessionInfo()
+```

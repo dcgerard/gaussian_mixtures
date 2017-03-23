@@ -1,5 +1,5 @@
 ---
-title: "Check likelihoods"
+title: "Check Likelihoods"
 author: "David Gerard"
 date: "`r Sys.Date()`"
 output: html_document
@@ -65,8 +65,10 @@ edout <- extreme_deconvolution(ydata = x_mat,
                                xamp = pi_vec,
                                xmean = matrix(0, nrow = K, ncol = p),
                                xcovar = U_list,
+                               fixmean = TRUE,
                                fixcovar = FALSE,
-                               fixamp = FALSE)
+                               fixamp = FALSE,
+                               logfile = "bovy_out")
 ```
 
 Get out estimates from both fits.
