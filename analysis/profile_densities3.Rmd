@@ -1,0 +1,50 @@
+---
+title: "Profile Likelihood Matrices"
+author: "David Gerard"
+date: "March 23, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I compare the speeds to my `get_llike_mat` (R version) and `get_llike_mat_cpp` (C++ version) from the [UltimateDeconvolution](https://github.com/dcgerard/UltimateDeconvolution).
+
+
+```{r}
+library(microbenchmark)
+library(UltimateDeconvolution)
+
+set.seed(834)
+K <- 3
+R <- 11
+N <- 7
+x_mat <- matrix(stats::rnorm(N * R), nrow = N)
+s_mat <- matrix(stats::rchisq(N * R, df = 5), nrow = N) / 5
+pi_vec <- stats::runif(K)
+pi_vec <- pi_vec / sum(pi_vec)
+v_mat <- matrix(stats::rnorm(R * K), nrow = R)
+param_list <- list(x_mat = x_mat, s_mat = s_mat, pi_vec = pi_vec, v_mat = v_mat)
+
+microbenchmark(
+  do.call(UltimateDeconvolution:::get_llike_mat, param_list),
+  do.call(UltimateDeconvolution:::get_llike_mat_cpp, param_list)
+)
+```
+
+The C++ version is about 200 times faster.
+
+The log-likelihoods are also the same.
+
+```{r}
+r_llike <- UltimateDeconvolution:::get_llike_mat(x_mat = x_mat, s_mat = s_mat,
+                                                 pi_vec = pi_vec, v_mat = v_mat)
+cpp_llike <- UltimateDeconvolution:::get_llike_mat_cpp(x_mat = x_mat, s_mat = s_mat,
+                                                       pi_vec = pi_vec, v_mat = v_mat)
+
+r_llike
+cpp_llike
+```

@@ -9,9 +9,11 @@
 <meta name="generator" content="pandoc" />
 
 
+<meta name="author" content="David Gerard" />
 
+<meta name="date" content="2017-03-23" />
 
-<title>Home</title>
+<title>Profile Likelihood Matrices</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,6 +21,9 @@
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-1.1/highlight.js"></script>
@@ -162,6 +167,101 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
 
 
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
@@ -202,20 +302,67 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Home</h1>
+<h1 class="title toc-ignore">Profile Likelihood Matrices</h1>
+<h4 class="author"><em>David Gerard</em></h4>
+<h4 class="date"><em>March 23, 2017</em></h4>
 
 </div>
 
 
-<p>This project is about coming up with a better way to estimate low-rank matrices in the multivariate Gaussian deconvolution problem.</p>
-<ul>
-<li><a href="check_bovy.html">Bovy always returns rank-1 matrix in same span as initial conditions</a>. That is, we just get a scaled estimate of the intial vector.</li>
-<li><a href="check__ultimate.html">My UltimateDeconvolution does not result in estimates in the same span as the original</a>. I also show that the likelihood increases at every fixed-point iteration.</li>
-<li><a href="profile_densities.html">I need to work on my speed</a>. Even the density calculation is super slow even though I have more information (low rank + diagonal)! I will probably write everything up in C.</li>
-<li><a href="profile_densities2.html">Simple C++ density function is 20 times faster than mvtnorm function</a>.</li>
-<li><a href="profile_densities3.html">Simple C++ likelihood calculation is 200 times faster in C++ than in R</a>.</li>
-<li><a href="compare_bovy_ultimate.html">I increase the log-likelihood, Bovy decreases the log-likelihood</a>. Do I have a bug somewhere in the Bovy implementation?</li>
-</ul>
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>Here, I compare the speeds to my <code>get_llike_mat</code> (R version) and <code>get_llike_mat_cpp</code> (C++ version) from the <a href="https://github.com/dcgerard/UltimateDeconvolution">UltimateDeconvolution</a>.</p>
+<pre class="r"><code>library(microbenchmark)
+library(UltimateDeconvolution)
+
+set.seed(834)
+K &lt;- 3
+R &lt;- 11
+N &lt;- 7
+x_mat &lt;- matrix(stats::rnorm(N * R), nrow = N)
+s_mat &lt;- matrix(stats::rchisq(N * R, df = 5), nrow = N) / 5
+pi_vec &lt;- stats::runif(K)
+pi_vec &lt;- pi_vec / sum(pi_vec)
+v_mat &lt;- matrix(stats::rnorm(R * K), nrow = R)
+param_list &lt;- list(x_mat = x_mat, s_mat = s_mat, pi_vec = pi_vec, v_mat = v_mat)
+
+microbenchmark(
+  do.call(UltimateDeconvolution:::get_llike_mat, param_list),
+  do.call(UltimateDeconvolution:::get_llike_mat_cpp, param_list)
+)</code></pre>
+<pre><code>## Unit: microseconds
+##                                                            expr     min
+##      do.call(UltimateDeconvolution:::get_llike_mat, param_list) 4194.73
+##  do.call(UltimateDeconvolution:::get_llike_mat_cpp, param_list)   18.06
+##       lq    mean median      uq     max neval cld
+##  4482.94 4857.46 4669.3 5317.49 6356.85   100   b
+##    22.92   28.23   27.9   31.15   63.59   100  a</code></pre>
+<p>The C++ version is about 200 times faster.</p>
+<p>The log-likelihoods are also the same.</p>
+<pre class="r"><code>r_llike &lt;- UltimateDeconvolution:::get_llike_mat(x_mat = x_mat, s_mat = s_mat,
+                                                 pi_vec = pi_vec, v_mat = v_mat)
+cpp_llike &lt;- UltimateDeconvolution:::get_llike_mat_cpp(x_mat = x_mat, s_mat = s_mat,
+                                                       pi_vec = pi_vec, v_mat = v_mat)
+
+r_llike</code></pre>
+<pre><code>##        [,1]   [,2]   [,3]
+## [1,] -16.46 -16.89 -15.95
+## [2,] -19.21 -17.05 -20.04
+## [3,] -21.41 -19.91 -21.14
+## [4,] -16.81 -17.44 -16.26
+## [5,] -19.43 -18.73 -18.91
+## [6,] -18.16 -17.99 -17.99
+## [7,] -18.57 -18.35 -18.45</code></pre>
+<pre class="r"><code>cpp_llike</code></pre>
+<pre><code>##        [,1]   [,2]   [,3]
+## [1,] -16.46 -16.89 -15.95
+## [2,] -19.21 -17.05 -20.04
+## [3,] -21.41 -19.91 -21.14
+## [4,] -16.81 -17.44 -16.26
+## [5,] -19.43 -18.73 -18.91
+## [6,] -18.16 -17.99 -17.99
+## [7,] -18.57 -18.35 -18.45</code></pre>
+</div>
 
 <hr>
 <p>
@@ -243,6 +390,8 @@ $(document).ready(function () {
 -->
 
 
+</div>
+</div>
 
 </div>
 
