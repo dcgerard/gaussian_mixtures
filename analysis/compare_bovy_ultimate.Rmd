@@ -1,0 +1,132 @@
+---
+title: "Check if UltimateDeconvolution's Matrices Also Span Same Space"
+author: "David Gerard"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Abstract
+
+Here, I look at whether ExtremeDeconvolution or UltimateDeconvolution returns higher likelihood values. I am strangely getting that ExtremeDeconvolution is making the likelihood *decrease*. Am I coding it up wrong?
+
+# Generate Data and Run Ultimate Deconvolution
+
+First, I generate some fake data
+
+```{r}
+set.seed(25)
+n <- 11
+p <- 13
+x_mat <- matrix(rnorm(n * p), nrow = n)
+s_mat <- matrix(stats::rchisq(n * p, df = 1), nrow = n)
+
+K <- 3 ## number of mixtures
+pi_vec<- runif(K) ## initial mixture proportions
+pi_vec <- pi_vec / sum(pi_vec)
+v_mat <- matrix(rnorm(p*K), ncol = K)
+```
+
+And I reformat it for ExtremeDeconvolution
+
+```{r}
+s_list <- list()
+for (index in 1:n) {
+  s_list[[index]] <- diag(s_mat[index, ])
+}
+
+U_list <- list()
+for (index in 1:K) {
+  U_list[[index]] <- tcrossprod(v_mat[, index])
+}
+```
+
+Now run `ultimate_deconvolution`.
+
+```{r, cache=TRUE}
+library(UltimateDeconvolution)
+
+udout <- ultimate_deconvolution(x_mat = x_mat,
+                                s_mat = s_mat,
+                                v_mat = v_mat,
+                                pi_vec = pi_vec)
+
+```
+
+And I run `extreme_deconvolution`.
+
+```{r}
+library(ExtremeDeconvolution)
+edout <- extreme_deconvolution(ydata = x_mat,
+                               ycovar = s_list,
+                               xamp = pi_vec,
+                               xmean = matrix(0, nrow = K, ncol = p),
+                               xcovar = U_list,
+                               fixcovar = FALSE,
+                               fixamp = FALSE)
+```
+
+Get out estimates from both fits.
+
+```{r}
+ed_pivec <- edout$xamp
+ed_vmat <- matrix(NA, nrow = p, ncol = K)
+for (index in 1:K) {
+  eout <- eigen(edout$xcovar[[index]])
+  ed_vmat[, index] <- eout$vectors[, 1] * sqrt(eout$values[1])
+  
+  assertthat::assert_that(all(abs(tcrossprod(ed_vmat[, index]) - edout$xcovar[[index]]) < 10 ^ -12))
+}
+
+ud_pivec <- udout$pi_vec
+ud_vmat  <- udout$v_mat
+```
+
+Again, ExtremeDeconvolution just returns a scalar multiple of the start values
+
+```{r}
+ed_vmat / v_mat
+```
+
+While UltimateDeconvolution does not
+
+```{r}
+ud_vmat / v_mat
+```
+
+Now we compare log-likelihoods
+
+```{r}
+initial_llike <- UltimateDeconvolution:::dmixlike(x_mat = x_mat,
+                                                  s_mat = s_mat,
+                                                  v_mat = v_mat,
+                                                  pi_vec = pi_vec,
+                                                  log = TRUE)
+
+ed_llike <- UltimateDeconvolution:::dmixlike(x_mat = x_mat,
+                                             s_mat = s_mat,
+                                             v_mat = ed_vmat,
+                                             pi_vec = ed_pivec,
+                                             log = TRUE)
+
+ud_llike <- UltimateDeconvolution:::dmixlike(x_mat = x_mat,
+                                             s_mat = s_mat,
+                                             v_mat = ud_vmat,
+                                             pi_vec = ud_pivec,
+                                             log = TRUE)
+
+initial_llike
+
+ed_llike
+
+ud_llike
+```
+
+The likelihood from UltimateDeconvolution is `r exp(ud_llike - ed_llike)` times greater than the likelihood from ExtremeDeconvolution.
+
+```{r}
+sessionInfo()
+```
