@@ -9,9 +9,11 @@
 <meta name="generator" content="pandoc" />
 
 
+<meta name="author" content="David Gerard" />
 
+<meta name="date" content="2017-03-23" />
 
-<title>Home</title>
+<title>Profile New Densities</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,6 +21,9 @@
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-1.1/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-1.1/highlight.js"></script>
@@ -162,6 +167,101 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
 
 
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
@@ -202,19 +302,64 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Home</h1>
+<h1 class="title toc-ignore">Profile New Densities</h1>
+<h4 class="author"><em>David Gerard</em></h4>
+<h4 class="date"><em>March 23, 2017</em></h4>
 
 </div>
 
 
-<p>This project is about coming up with a better way to estimate low-rank matrices in the multivariate Gaussian deconvolution problem.</p>
-<ul>
-<li><a href="check_bovy.html">Bovy always returns rank-1 matrix in same span as initial conditions</a>. That is, we just get a scaled estimate of the intial vector.</li>
-<li><a href="check__ultimate.html">My UltimateDeconvolution does not result in estimates in the same span as the original</a>. I also show that the likelihood increases at every fixed-point iteration.</li>
-<li><a href="profile_densities.html">I need to work on my speed</a>. Even the density calculation is super slow even though I have more information (low rank + diagonal)! I will probably write everything up in C.</li>
-<li><a href="profile_densities2.html">Simple C++ density function is 20 times faster than mvtnorm function</a>.</li>
-<li><a href="compare_bovy_ultimate.html">I increase the log-likelihood, Bovy decreases the log-likelihood</a>. Do I have a bug somewhere in the Bovy implementation?</li>
-</ul>
+<div id="abstract" class="section level1">
+<h1>Abstract</h1>
+<p>Here, I compare the speeds to my <code>dr1_norm</code> (R version) and <code>dnorm_rank1</code> (C++ version) from the <a href="https://github.com/dcgerard/UltimateDeconvolution">UltimateDeconvolution</a> package and <code>dmvnorm</code> from the <code>mvtnorm</code> R package. Since I am using more information (rank 1 + diagonal), mine should be faster. My R version is about 2-3 times slower than <code>dmvnorm</code>, but my C++ version is about 10-20 times faster.</p>
+<pre class="r"><code>library(microbenchmark)
+library(UltimateDeconvolution)
+set.seed(17)
+R &lt;- 11
+x &lt;- stats::rnorm(R)
+s_diag &lt;- stats::rchisq(R, df = 5)
+v &lt;- stats::rnorm(R)
+mu &lt;- rep(0, length(x))
+log &lt;- TRUE
+true_cov &lt;- tcrossprod(v) + diag(s_diag)
+
+melist1 &lt;- list(x = x, v = v, s_diag = s_diag,
+                mu = mu, log = log)
+melist2 &lt;- list(x = x, v = v, s_diag = s_diag,
+                mu = mu, return_log = log)
+
+themlist &lt;- list(x = x, mean = mu,
+                 sigma = true_cov, log = log)
+
+microbenchmark(
+  do.call(dr1_norm, melist1),
+  do.call(dnorm_rank1, melist2),
+  do.call(mvtnorm::dmvnorm, themlist)
+)</code></pre>
+<pre><code>## Unit: microseconds
+##                                 expr     min      lq    mean  median
+##           do.call(dr1_norm, melist1) 196.435 211.395 239.397 221.790
+##        do.call(dnorm_rank1, melist2)   3.479   4.827   7.354   7.061
+##  do.call(mvtnorm::dmvnorm, themlist)  64.509  73.037 109.407  78.581
+##       uq  max neval cld
+##  231.940 1562   100   c
+##    8.155   32   100 a  
+##   85.409 2978   100  b</code></pre>
+<p>The log-likelihoods are also the same.</p>
+<pre class="r"><code>medense1 &lt;- dr1_norm(x = x, v = v, s_diag = s_diag,
+                     mu = mu, log = log)
+medense2 &lt;- dnorm_rank1(x = x, v = v, s_diag = s_diag,
+                        mu = mu, return_log = log)
+themdense &lt;- mvtnorm::dmvnorm(x = x, mean = mu,
+                              sigma = true_cov, log = log)
+
+medense1</code></pre>
+<pre><code>## [1] -20.52</code></pre>
+<pre class="r"><code>medense2</code></pre>
+<pre><code>## [1] -20.52</code></pre>
+<pre class="r"><code>themdense</code></pre>
+<pre><code>## [1] -20.52</code></pre>
+</div>
 
 <hr>
 <p>
@@ -242,6 +387,8 @@ $(document).ready(function () {
 -->
 
 
+</div>
+</div>
 
 </div>
 
