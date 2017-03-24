@@ -1,0 +1,54 @@
+---
+title: "Profile EM Algorithms"
+author: "David Gerard"
+date: "March 24, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract
+
+Here, I profile the C++ and R versions of the EM algorithms.
+
+# Generate Data
+
+```{r}
+library(UltimateDeconvolution)
+library(microbenchmark)
+set.seed(83)
+K <- 3
+R <- 11
+N <- 7
+
+x_mat <- matrix(stats::rnorm(N * R), nrow = N)
+s_mat <- matrix(stats::rchisq(N * R, df = 5), nrow = N)
+pi_vec <- stats::runif(K)
+pi_vec <- pi_vec / sum(pi_vec)
+v_mat <- matrix(stats::rnorm(R * K), nrow = R)
+arg_list <- list(x_mat = x_mat, s_mat = s_mat, v_mat = v_mat, pi_vec = pi_vec, itermax = 10)
+
+microbenchmark(
+  do.call(em_r, arg_list),
+  do.call(em_cpp, arg_list)
+)
+```
+
+The cpp version is about 200 times faster than the R version.
+
+They also give the same results
+
+```{r}
+rout <- em_r(x_mat = x_mat, s_mat = s_mat, v_mat = v_mat, pi_vec = pi_vec, itermax = 10)
+cppout <- em_cpp(x_mat = x_mat, s_mat = s_mat, v_mat = v_mat, pi_vec = pi_vec, itermax = 10)
+
+rout
+cppout
+```
+
+
+```{r}
+sessionInfo()
+```

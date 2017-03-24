@@ -12,4 +12,5 @@ This project is about coming up with a better way to estimate low-rank matrices 
 * [I need to work on my speed](profile_densities.html). Even the density calculation is super slow even though I have more information (low rank + diagonal)! I will probably write everything up in C.
 * [Simple C++ density function is 20 times faster than mvtnorm function](profile_densities2.html).
 * [Simple C++ likelihood calculation is 200 times faster in C++ than in R](profile_densities3.html).
+* [C++ version of EM algorithm is 200 times faster than the R version](profile_em.html).
 * [I increase the log-likelihood, Bovy decreases the log-likelihood](compare_bovy_ultimate.html). Do I have a bug somewhere in the Bovy implementation?
